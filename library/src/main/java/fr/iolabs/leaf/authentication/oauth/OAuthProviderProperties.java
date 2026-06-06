@@ -5,7 +5,6 @@ import java.util.Map;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.stereotype.Component;
 
 /**
  * Configuration-driven declaration of OAuth2 providers exposing a userinfo
@@ -31,7 +30,6 @@ import org.springframework.stereotype.Component;
  * alongside the built-in providers.
  * </p>
  */
-@Component
 @Configuration
 @ConfigurationProperties(prefix = "leaf.oauth")
 public class OAuthProviderProperties {
