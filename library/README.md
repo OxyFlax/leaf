@@ -92,6 +92,50 @@ To enable whitelisting add the following in application.properties:
 
 	leaf.whitelisting.enabled=true
 
+### OAuth2 authentication
+
+Leaf provides turnkey OAuth2 login/registration. The frontend obtains a token
+from the provider and posts it to:
+
+	POST /api/account/oauth/{provider}
+	{ "idToken": "<provider token>", "name": "<optional display name>" }
+
+Leaf verifies the token, then finds, links or creates the matching account and
+returns a session JWT.
+
+#### Built-in providers
+
+ - `google` — verifies a Google ID token (`leaf.oauth.google.clientId`)
+ - `apple` — verifies an Apple ID token (`leaf.oauth.apple.clientId`)
+ - `ampeco` — verifies an AMPECO access token through its userinfo endpoint
+   (`leaf.oauth.ampeco.userInfoUri`)
+
+#### Adding any OAuth2 provider
+
+Any provider exposing an OpenID Connect style `userinfo` endpoint can be added
+**without writing code**, by declaring it in your configuration:
+
+	leaf:
+	  oauth:
+	    providers:
+	      myprovider:
+	        userInfoUri: "https://example.com/oauth/userinfo"
+	        # Optional claim overrides (defaults shown):
+	        idClaim: "sub"
+	        emailClaim: "email"
+	        firstnameClaim: "given_name"
+	        lastnameClaim: "family_name"
+	        nameClaim: "name"
+	        avatarClaim: "picture"
+
+The declared provider becomes immediately available at
+`/api/account/oauth/myprovider`.
+
+For providers needing custom token verification (such as locally verified ID
+tokens), implement the `OAuthTokenVerifier` interface and expose it as a Spring
+`@Component`; userinfo-endpoint based providers can simply extend
+`AbstractUserInfoOAuthTokenVerifier`.
+
 ### Email sending service
 Emailling his using a third party SAAS API named MailGun.
 Documentation can be found here: https://www.mailgun.com/
