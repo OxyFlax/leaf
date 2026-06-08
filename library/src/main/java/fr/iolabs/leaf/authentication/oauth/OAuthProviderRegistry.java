@@ -34,7 +34,15 @@ public class OAuthProviderRegistry {
 
 		// Register built-in / code-defined verifiers (e.g. google, apple, ampeco).
 		for (OAuthTokenVerifier verifier : this.verifiers) {
-			this.verifierMap.put(verifier.getProvider().toLowerCase(), verifier);
+			String provider = verifier.getProvider() == null ? null : verifier.getProvider().toLowerCase(java.util.Locale.ROOT);
+			if (Strings.isBlank(provider)) {
+				logger.warn("Skipping OAuth verifier with blank provider: {}", verifier.getClass().getName());
+				continue;
+			}
+			if (this.verifierMap.containsKey(provider)) {
+				throw new IllegalStateException("Duplicate OAuth verifier for provider: " + provider);
+			}
+			this.verifierMap.put(provider, verifier);
 		}
 
 		// Register configuration-declared providers, without overriding code-defined ones.
