@@ -50,6 +50,13 @@ leaf:
       clientId: "${OAUTH_APPLE_CLIENT_ID:}"
     google:
       clientId: "${OAUTH_GOOGLE_CLIENT_ID:}"
+    ampeco:
+      userInfoUri: "${OAUTH_AMPECO_USERINFO_URI:}"
+    # Add any extra OAuth2 provider exposing a userinfo endpoint without writing code:
+    # providers:
+    #   myprovider:
+    #     userInfoUri: "https://example.com/oauth/userinfo"
+    #     emailClaim: "email"
   payment:
     stripe:
       api:
