@@ -53,6 +53,13 @@ public class LeafOrganizationController {
 
 	@CrossOrigin
 	@AdminOnly
+	@PostMapping("/search")
+	public OrganizationSearchResponse searchOrganizations(@RequestBody OrganizationSearchCriteria criteria) {
+		return this.organizationService.search(criteria);
+	}
+
+	@CrossOrigin
+	@AdminOnly
 	@PostMapping
 	public LeafOrganization createOrganization(@RequestBody CreateOrganizationAction action) {
 		return this.organizationService.create(action);

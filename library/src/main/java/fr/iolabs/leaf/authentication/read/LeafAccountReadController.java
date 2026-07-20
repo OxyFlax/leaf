@@ -5,6 +5,7 @@ import java.util.List;
 import javax.annotation.Resource;
 
 import fr.iolabs.leaf.authentication.LeafAccountRepository;
+import fr.iolabs.leaf.authentication.LeafAccountService;
 import fr.iolabs.leaf.authentication.model.*;
 import fr.iolabs.leaf.authentication.privacy.LeafPrivacyService;
 import fr.iolabs.leaf.common.annotations.AdminOnly;
@@ -13,6 +14,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -30,6 +33,9 @@ public class LeafAccountReadController {
 	private LeafAccountRepository accountRepository;
 
 	@Autowired
+	private LeafAccountService accountService;
+
+	@Autowired
 	private LeafPrivacyService privacyHelper;
 
 	@CrossOrigin
@@ -38,6 +44,13 @@ public class LeafAccountReadController {
 	public List<LeafAccount> listUsers() {
 		List<LeafAccount> accounts = this.accountRepository.findAll();
 		return this.privacyHelper.protectAccounts(accounts);
+	}
+
+	@CrossOrigin
+	@PostMapping("/search")
+	@AdminOnly
+	public AccountSearchResponse searchUsers(@RequestBody AccountSearchCriteria criteria) {
+		return this.accountService.search(criteria);
 	}
 
 	@CrossOrigin

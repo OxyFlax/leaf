@@ -2,8 +2,10 @@ package fr.iolabs.leaf.authentication;
 
 import java.time.LocalDate;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.regex.Pattern;
 
 import javax.annotation.Resource;
 import javax.servlet.http.Cookie;
@@ -19,6 +21,10 @@ import fr.iolabs.leaf.authentication.actions.RegistrationAction;
 import fr.iolabs.leaf.authentication.actions.ResetPasswordAction;
 import fr.iolabs.leaf.authentication.actions.AccountVerification;
 import fr.iolabs.leaf.authentication.actions.ChangePasswordAction;
+import fr.iolabs.leaf.authentication.privacy.LeafPrivacyService;
+import fr.iolabs.leaf.authentication.read.AccountSearchCriteria;
+import fr.iolabs.leaf.authentication.read.AccountSearchOrder;
+import fr.iolabs.leaf.authentication.read.AccountSearchResponse;
 import fr.iolabs.leaf.common.utils.StringHasher;
 import fr.iolabs.leaf.notifications.LeafNotification;
 import fr.iolabs.leaf.notifications.LeafNotificationService;
@@ -31,6 +37,11 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.stereotype.Service;
 
 import fr.iolabs.leaf.LeafContext;
@@ -55,6 +66,10 @@ public class LeafAccountService {
 
 	@Autowired
 	private LeafAccountRepository accountRepository;
+	@Autowired
+	private MongoTemplate mongoTemplate;
+	@Autowired
+	private LeafPrivacyService privacyHelper;
 	@Autowired
 	private TokenService tokenService;
 	@Autowired
@@ -399,5 +414,43 @@ public class LeafAccountService {
 
 	public boolean isEmailAssociated(String email) {
 		return this.accountRepository.findAccountByEmail(email) != null;
+	}
+
+	public AccountSearchResponse search(AccountSearchCriteria criteria) {
+		if (criteria == null) {
+			criteria = new AccountSearchCriteria();
+		}
+
+		Query query = new Query();
+		if (Strings.isNotBlank(criteria.getEmail())) {
+			query.addCriteria(Criteria.where("email").regex(Pattern.quote(criteria.getEmail().trim()), "i"));
+		}
+
+		long totalCount = this.mongoTemplate.count(query, LeafAccount.class);
+
+		query.with(this.resolveSort(criteria.getOrderBy()));
+		query.with(PageRequest.of(criteria.getPage(), criteria.getPageSize()));
+
+		List<LeafAccount> accounts = this.privacyHelper
+				.protectAccounts(this.mongoTemplate.find(query, LeafAccount.class));
+
+		int pageCount = (int) Math.ceil((double) totalCount / criteria.getPageSize());
+
+		return new AccountSearchResponse(accounts, totalCount, pageCount, criteria.getPage());
+	}
+
+	private Sort resolveSort(AccountSearchOrder orderBy) {
+		AccountSearchOrder order = orderBy != null ? orderBy : AccountSearchOrder.FIRST_REGISTERED;
+		switch (order) {
+		case LAST_REGISTERED:
+			return Sort.by(Sort.Direction.DESC, "metadata.creationDate");
+		case EMAIL:
+			return Sort.by(Sort.Direction.ASC, "email");
+		case ADMIN:
+			return Sort.by(Sort.Direction.DESC, "admin");
+		case FIRST_REGISTERED:
+		default:
+			return Sort.by(Sort.Direction.ASC, "metadata.creationDate");
+		}
 	}
 }

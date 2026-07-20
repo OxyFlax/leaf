@@ -14,6 +14,11 @@ import fr.iolabs.leaf.organization.policies.LeafOrganizationPoliciesService;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -21,7 +26,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.regex.Pattern;
 
-import org.springframework.data.domain.PageRequest;
+import org.apache.logging.log4j.util.Strings;
 
 import javax.annotation.Resource;
 
@@ -34,6 +39,9 @@ public class LeafOrganizationService {
 
 	@Autowired
 	private LeafOrganizationRepository organizationRepository;
+
+	@Autowired
+	private MongoTemplate mongoTemplate;
 
 	@Autowired
 	private LeafAccountRepository accountRepository;
@@ -127,5 +135,37 @@ public class LeafOrganizationService {
 			}
 		}
         return false;
+	}
+
+	public OrganizationSearchResponse search(OrganizationSearchCriteria criteria) {
+		if (criteria == null) {
+			criteria = new OrganizationSearchCriteria();
+		}
+
+		Query query = new Query();
+		if (Strings.isNotBlank(criteria.getName())) {
+			query.addCriteria(Criteria.where("name").regex(Pattern.quote(criteria.getName().trim()), "i"));
+		}
+
+		long totalCount = this.mongoTemplate.count(query, LeafOrganization.class);
+
+		query.with(this.resolveSort(criteria.getOrderBy()));
+		query.with(PageRequest.of(criteria.getPage(), criteria.getPageSize()));
+
+		List<LeafOrganization> organizations = this.mongoTemplate.find(query, LeafOrganization.class);
+		int pageCount = (int) Math.ceil((double) totalCount / criteria.getPageSize());
+
+		return new OrganizationSearchResponse(organizations, totalCount, pageCount, criteria.getPage());
+	}
+
+	private Sort resolveSort(OrganizationSearchOrder orderBy) {
+		OrganizationSearchOrder order = orderBy != null ? orderBy : OrganizationSearchOrder.NAME;
+		switch (order) {
+		case CREATION_DATE:
+			return Sort.by(Sort.Direction.DESC, "metadata.creationDate");
+		case NAME:
+		default:
+			return Sort.by(Sort.Direction.ASC, "name");
+		}
 	}
 }
