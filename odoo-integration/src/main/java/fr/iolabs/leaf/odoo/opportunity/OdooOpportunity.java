@@ -17,6 +17,7 @@ public class OdooOpportunity {
 	private String stageName;
 	private List<String> tags = new ArrayList<>();
 	private ZonedDateTime createdAt;
+	private Integer priority;
 
 	public OdooOpportunity() {}
 
@@ -124,5 +125,13 @@ public class OdooOpportunity {
 
 	public void setCreatedAt(ZonedDateTime createdAt) {
 		this.createdAt = createdAt;
+	}
+
+	public Integer getPriority() {
+		return priority;
+	}
+
+	public void setPriority(Integer priority) {
+		this.priority = priority;
 	}
 }

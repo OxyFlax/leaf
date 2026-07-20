@@ -300,7 +300,8 @@ public class OdooOpportunityService {
 				"partner_id",
 				"stage_id",
 				"tag_ids",
-				"create_date"
+				"create_date",
+				"priority"
 			)) {
 			if (availableFields.contains(candidate)) {
 				fields.add(candidate);
@@ -440,6 +441,7 @@ public class OdooOpportunityService {
 			opportunity.setStageName(OdooValueMapper.asMany2OneDisplayName(row.get("stage_id")));
 			opportunity.setTags(this.mapTagNames(row.get("tag_ids"), tagNamesById));
 			opportunity.setCreatedAt(OdooValueMapper.asZonedDateTime(row.get("create_date")));
+			opportunity.setPriority(OdooValueMapper.asInteger(row.get("priority")));
 			opportunities.add(opportunity);
 		}
 		return opportunities;
