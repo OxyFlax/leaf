@@ -148,6 +148,8 @@ public class LeafAccountService {
 		String pwd = LeafAccountHelper.generateComplexPassword(GENERATED_PASSWORD_LENGTH);
 		authentication.setPassword(pwd);
 		authentication.hashPassword();
+		// The user never chose this password, so it cannot be used to sign in.
+		authentication.setPasswordless(true);
 		instantiatedAccount.setAuthentication(authentication);
 		return this.accountRepository.save(instantiatedAccount);
 	}
@@ -185,6 +187,9 @@ public class LeafAccountService {
 
 		LeafAccount fetchedAccount = this.accountRepository.findAccountByEmail(accountLogin.getEmail());
 		if (fetchedAccount == null
+				// Accounts holding a generated password (OAuth sign-up, partial accounts) have
+				// no password the user could ever type in.
+				|| fetchedAccount.getAuthentication().isPasswordless()
 				|| !fetchedAccount.getAuthentication().getPassword().equals(accountLogin.getPassword())) {
 			throw new UnauthorizedException();
 		}
@@ -232,6 +237,7 @@ public class LeafAccountService {
 		me.getMetadata().updateLastModification();
 		me.getAuthentication().setPassword(passwordChanger.getNewPassword());
 		me.getAuthentication().hashPassword();
+		me.getAuthentication().setPasswordless(false);
 
 		return this.accountRepository.save(me);
 	}
@@ -265,6 +271,8 @@ public class LeafAccountService {
 		fetchedAccount.getAuthentication().setPassword(resetPasswordAction.getPassword());
 		fetchedAccount.getAuthentication().setResetPasswordKey(null);
 		fetchedAccount.getAuthentication().hashPassword();
+		// The user just chose a password: the account is not OAuth-only anymore.
+		fetchedAccount.getAuthentication().setPasswordless(false);
 
 		String sessionToken = this.createSessionAndCookie(fetchedAccount);
 
